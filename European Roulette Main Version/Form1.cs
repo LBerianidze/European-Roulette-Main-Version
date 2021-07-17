@@ -46,32 +46,53 @@ namespace European_Roulette_Main_Version
                 int spin = spins[spins.Count - (i + 1)];
                 lastThirteenSpinsDataGridView.Rows[0].Cells[i].Value = spin;
                 //Присваиваем цвет связанный с текущим цветом.
-                if(spin == 0)
+                if (spin == 0)
                 {
                     lastThirteenSpinsDataGridView.Rows[0].Cells[i].Style.ForeColor = Color.LightGreen;
                 }
-                else if(RedSpins.Contains(spin))
+                else if (RedSpins.Contains(spin))
                 {
                     lastThirteenSpinsDataGridView.Rows[0].Cells[i].Style.ForeColor = Color.Firebrick;
                 }
 
             }
             // Обрабатываем таблицу всех спинов
-            if(spins.Count > 13)
+            if (spins.Count > 13)
             {
                 int rowsCount = (int)Math.Ceiling((spins.Count - 13) / 15.0); // Необходимое количество строк для отображения всех спинов - 13( Они в верхней таблице)
-                if(lastOperation == 1)
+                if (lastOperation == 1)
                 {
                     if (dataGridView1.Rows.Count < rowsCount)
                         dataGridView1.Rows.Add();
-
+                    int spin = spins[spins.Count - 14];
                     int tableSpinsCount = spins.Count - 13;
-                    int lastSpinRowIndex = (int)Math.Floor(tableSpinsCount / 15.0);
+                    int lastSpinRowIndex = (int)Math.Ceiling(tableSpinsCount / 15.0) - 1;
                     int lastSpinCellIndex = tableSpinsCount - (lastSpinRowIndex * 15) - 1;
-                    dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Value = spins[spins.Count - 14];
+                    dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Value = spin;
+                    if (spin == 0)
+                        dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Style.ForeColor = Color.LightGreen;
+                    else if (RedSpins.Contains(spin))
+                        dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Style.ForeColor = Color.Firebrick;
+                }
+                else if (lastOperation == 2)
+                {
+                    if (dataGridView1.Rows.Count > rowsCount)
+                        dataGridView1.Rows.RemoveAt(dataGridView1.Rows.Count - 1);
+                    else
+                    {
+                        int tableSpinsCount = spins.Count - 13;
+                        int lastSpinRowIndex = (int)Math.Ceiling(tableSpinsCount / 15.0) - 1;
+                        int lastSpinCellIndex = tableSpinsCount - (lastSpinRowIndex * 15);
+                        dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Value = "";
+                    }
                 }
                 dataGridView1.FirstDisplayedScrollingRowIndex = dataGridView1.Rows.Count - 1;
 
+
+            }
+            else
+            {
+                dataGridView1.Rows.Clear();
             }
         }
         /// <summary>
