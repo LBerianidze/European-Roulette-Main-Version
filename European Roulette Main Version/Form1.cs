@@ -1,12 +1,10 @@
 ﻿using European_Roulette_Main_Version.Helpers;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace European_Roulette_Main_Version
@@ -15,94 +13,105 @@ namespace European_Roulette_Main_Version
     {
         public Form1()
         {
-            InitializeComponent();
+            this.InitializeComponent();
         }
         private static readonly int[] RedSpins = { 1, 3, 5, 9, 12, 7, 14, 18, 16, 21, 19, 23, 27, 25, 30, 32, 36, 34 };
         private static readonly int[] FalloutIntervals = { 11, 14, 19, 28, 37, 55, 74, 111, 185, 295, 0 };
-        List<int> spins = new List<int>();
-        int lastSpin = -1;
+        private List<int> spins = new List<int>();
+        private int lastSpin = -1;
+
         /// <summary>
         /// Spin Operation Type. 1 - Spin Added, 2 - Spin Cancelled
         /// </summary>
-        byte lastOperation = 0;
+        private byte lastOperation = 0;
         private static readonly int[] Sequence = { 22, 18, 29, 7, 28, 12, 35, 3, 26, 0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9 };
         private void Button35_Click(object sender, EventArgs e)
         {
-            lastSpin = Convert.ToInt32((sender as Control).Text);
-            spins.Add(lastSpin);
-            lastOperation = 1;
-            Calculate();
+            this.lastSpin = Convert.ToInt32((sender as Control).Text);
+            this.spins.Add(this.lastSpin);
+            this.lastOperation = 1;
+            this.Calculate();
         }
         private void ResetDataGridViewCellStyle()
         {
-            lastThirteenSpinsDataGridView.Rows[0].Cells.Cast<DataGridViewCell>().ToList().ForEach(t => { t.Style.ForeColor = Color.Black; t.Value = ""; });
+            this.lastThirteenSpinsDataGridView.Rows[0].Cells.Cast<DataGridViewCell>().ToList().ForEach(t => { t.Style.ForeColor = Color.Black; t.Value = ""; });
         }
         private void Calculate()
         {
-            ResetDataGridViewCellStyle(); // Сбрасываем цвет ячеек в таблице последних 13 спинов
-            for (int i = 0; i < 13 && i < spins.Count; i++)
+            this.ResetDataGridViewCellStyle(); // Сбрасываем цвет ячеек в таблице последних 13 спинов
+            for (var i = 0; i < 13 && i < this.spins.Count; i++)
             {
                 //Спин на текущей итерации
-                int spin = spins[spins.Count - (i + 1)];
-                lastThirteenSpinsDataGridView.Rows[0].Cells[i].Value = spin;
+                var spin = this.spins[this.spins.Count - (i + 1)];
+                this.lastThirteenSpinsDataGridView.Rows[0].Cells[i].Value = spin;
                 //Присваиваем цвет связанный с текущим цветом.
                 if (spin == 0)
                 {
-                    lastThirteenSpinsDataGridView.Rows[0].Cells[i].Style.ForeColor = Color.LightGreen;
+                    this.lastThirteenSpinsDataGridView.Rows[0].Cells[i].Style.ForeColor = Color.LightGreen;
                 }
                 else if (RedSpins.Contains(spin))
                 {
-                    lastThirteenSpinsDataGridView.Rows[0].Cells[i].Style.ForeColor = Color.Firebrick;
+                    this.lastThirteenSpinsDataGridView.Rows[0].Cells[i].Style.ForeColor = Color.Firebrick;
                 }
 
             }
             // Обрабатываем таблицу всех спинов
-            if (spins.Count > 13)
+            if (this.spins.Count > 13)
             {
-                int rowsCount = (int)Math.Ceiling((spins.Count - 13) / 15.0); // Необходимое количество строк для отображения всех спинов - 13( Они в верхней таблице)
-                if (lastOperation == 1) // Если спин был добавлен
+                var rowsCount = (int)Math.Ceiling((this.spins.Count - 13) / 15.0); // Необходимое количество строк для отображения всех спинов - 13( Они в верхней таблице)
+                if (this.lastOperation == 1) // Если спин был добавлен
                 {
-                    if (dataGridView1.Rows.Count < rowsCount)
-                        dataGridView1.Rows.Add();
-                    int spin = spins[spins.Count - 14];
-                    int tableSpinsCount = spins.Count - 13;
-                    int lastSpinRowIndex = (int)Math.Ceiling(tableSpinsCount / 15.0) - 1;
-                    int lastSpinCellIndex = tableSpinsCount - (lastSpinRowIndex * 15) - 1;
-                    dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Value = spin;
-                    if (spin == 0)
-                        dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Style.ForeColor = Color.LightGreen;
-                    else if (RedSpins.Contains(spin))
-                        dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Style.ForeColor = Color.Firebrick;
-                }
-                else if (lastOperation == 2) // Если спин был отменен
-                {
-                    if (dataGridView1.Rows.Count > rowsCount) // Если спин был последним в текущей строке - удаляем последнюю строку
-                        dataGridView1.Rows.RemoveAt(dataGridView1.Rows.Count - 1);
-                    else // иначе, очищаем последнюю заполненную данными ячейке в таблице
+                    if (this.dataGridView1.Rows.Count < rowsCount)
                     {
-                        int tableSpinsCount = spins.Count - 13;
-                        int lastSpinRowIndex = (int)Math.Ceiling(tableSpinsCount / 15.0) - 1;
-                        int lastSpinCellIndex = tableSpinsCount - (lastSpinRowIndex * 15);
-                        dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Value = "";
+                        this.dataGridView1.Rows.Add();
+                    }
+
+                    var spin = this.spins[this.spins.Count - 14];
+                    var tableSpinsCount = this.spins.Count - 13;
+                    var lastSpinRowIndex = (int)Math.Ceiling(tableSpinsCount / 15.0) - 1;
+                    var lastSpinCellIndex = tableSpinsCount - (lastSpinRowIndex * 15) - 1;
+                    this.dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Value = spin;
+                    if (spin == 0)
+                    {
+                        this.dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Style.ForeColor = Color.LightGreen;
+                    }
+                    else if (RedSpins.Contains(spin))
+                    {
+                        this.dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Style.ForeColor = Color.Firebrick;
                     }
                 }
-                dataGridView1.FirstDisplayedScrollingRowIndex = dataGridView1.Rows.Count - 1;
+                else if (this.lastOperation == 2) // Если спин был отменен
+                {
+                    if (this.dataGridView1.Rows.Count > rowsCount) // Если спин был последним в текущей строке - удаляем последнюю строку
+                    {
+                        this.dataGridView1.Rows.RemoveAt(this.dataGridView1.Rows.Count - 1);
+                    }
+                    else // иначе, очищаем последнюю заполненную данными ячейке в таблице
+                    {
+                        var tableSpinsCount = this.spins.Count - 13;
+                        var lastSpinRowIndex = (int)Math.Ceiling(tableSpinsCount / 15.0) - 1;
+                        var lastSpinCellIndex = tableSpinsCount - (lastSpinRowIndex * 15);
+                        this.dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Value = "";
+                    }
+                }
+                this.dataGridView1.FirstDisplayedScrollingRowIndex = this.dataGridView1.Rows.Count - 1;
 
 
             }
             else
             {
-                dataGridView1.Rows.Clear();
+                this.dataGridView1.Rows.Clear();
             }
+
             var sectorsNotFallout = new Dictionary<int, List<double>>();
-            for (int i = 0; i < Sequence.Length; i++)
+            for (var i = 0; i < Sequence.Length; i++)
             {
-                int currentSector = Sequence[i];
-                int lastIndex = spins.Count;
+                var currentSector = Sequence[i];
+                var lastIndex = this.spins.Count;
                 sectorsNotFallout.Add(currentSector, new List<double>());
-                for (int z = spins.Count - 1; z >= 0; z--)
+                for (var z = this.spins.Count - 1; z >= 0; z--)
                 {
-                    if (spins[z] == currentSector)
+                    if (this.spins[z] == currentSector)
                     {
                         sectorsNotFallout[currentSector].Add(lastIndex - z - 1);
                         lastIndex = z;
@@ -110,50 +119,69 @@ namespace European_Roulette_Main_Version
                 }
                 //sectorsNotFallout[currentSector].Reverse();
             }
-            for (int i = 0; i < sectorsNotFallout.Count; i++)
+            for (var i = 0; i < sectorsNotFallout.Count; i++)
             {
                 var number = sectorsNotFallout.ElementAt(i).Key;
                 var nonFallouts = sectorsNotFallout[number];
                 if (nonFallouts.Count != 0)
-                    notFalloutsDgView.Rows[2].Cells[i].Value = nonFallouts.First();
+                {
+                    this.notFalloutsDgView.Rows[2].Cells[i].Value = nonFallouts.First();
+                }
                 else
                 {
-                    notFalloutsDgView.Rows[2].Cells[i].Value = spins.Count;
+                    this.notFalloutsDgView.Rows[2].Cells[i].Value = this.spins.Count;
                 }
-                for (int z = 1; z < nonFallouts.Count; z++)
+                for (var z = 1; z < nonFallouts.Count; z++)
                 {
                     nonFallouts[z] += nonFallouts[z - 1];
                 }
-                for (int z = 1; z < nonFallouts.Count; z++)
+                for (var z = 1; z < nonFallouts.Count; z++)
                 {
                     nonFallouts[z] /= z + 1.0;
                 }
                 var total = nonFallouts.Sum() / nonFallouts.Count;
-                if (double.IsNaN(total))
-                    total = 0;
-                notFalloutsDgView.Rows[3].Cells[i].Value = (int)Math.Round(total);
-            }
-            for(int z = 0;z<FalloutIntervals.Length;z++)
-            {
-                Dictionary<int, int> falloutsSector = new Dictionary<int, int>();
-                for (int i = 0; i < Sequence.Length; i++)
+                if (Double.IsNaN(total))
                 {
-                    int currentSector = Sequence[i];
+                    total = 0;
+                }
+
+                this.notFalloutsDgView.Rows[3].Cells[i].Value = (int)Math.Round(total);
+            }
+            Dictionary<int, int> lastFalloutsSector = null;
+            for (var z = 0; z < FalloutIntervals.Length; z++)
+            {
+                var falloutsSector = new Dictionary<int, int>();
+                for (var i = 0; i < Sequence.Length; i++)
+                {
+                    var currentSector = Sequence[i];
                     falloutsSector.Add(currentSector, 0);
                 }
-                int count = FalloutIntervals[z] == 0 ? spins.Count : FalloutIntervals[z];
-                CalculateFallouts(falloutsSector, count);
-                for (int i = 0; i < Sequence.Length; i++)
+                var count = FalloutIntervals[z] == 0 ? this.spins.Count : FalloutIntervals[z];
+                if (z == 0)
                 {
-                    falloutDgView.Rows[z].Cells[i].Value = falloutsSector.ElementAt(i).Value;
+                    this.CalculateFallouts(falloutsSector, count);
+                }
+                else
+                {
+                    for (var e = 0; e < lastFalloutsSector.Count; e++)
+                    {
+                        falloutsSector[e] = lastFalloutsSector[e];
+                    }
+                    this.CalculateFallouts(falloutsSector, count, FalloutIntervals[z - 1]);
+                }
+                lastFalloutsSector = falloutsSector;
+                for (var i = 0; i < Sequence.Length; i++)
+                {
+                    this.falloutDgView.Rows[z].Cells[i].Value = falloutsSector.ElementAt(i).Value;
                 }
             }
+
         }
-        void CalculateFallouts(Dictionary<int, int> numbers, int count)
+        private void CalculateFallouts(Dictionary<int, int> numbers, int count, int skip = 0)
         {
-            for (int i = 0; i < count && i < spins.Count; i++)
+            for (var i = skip; i < count && i < this.spins.Count; i++)
             {
-                numbers[spins[spins.Count - (i + 1)]]++;
+                numbers[this.spins[this.spins.Count - (i + 1)]]++;
             }
         }
         /// <summary>
@@ -164,86 +192,97 @@ namespace European_Roulette_Main_Version
         private void Form1_Load(object sender, EventArgs e)
         {
             //Добавление в таблицу последних 13 спинов соответствующих колонок и строки
-            for (int i = 0; i < 13; i++)
+            for (var i = 0; i < 13; i++)
             {
-                lastThirteenSpinsDataGridView.Columns.Add("column_" + i, "");
+                this.lastThirteenSpinsDataGridView.Columns.Add("column_" + i, "");
             }
-            lastThirteenSpinsDataGridView.Rows.Add();
+            this.lastThirteenSpinsDataGridView.Rows.Add();
             //Добавляем в основную таблицу 15 колонок
-            for (int i = 0; i < 15; i++)
+            for (var i = 0; i < 15; i++)
             {
-                dataGridView1.Columns.Add("column_" + i, "");
+                this.dataGridView1.Columns.Add("column_" + i, "");
             }
             //Добавляем в таблицу невыпадений колонки(37) для каждого спина
             //Добавляем в основную таблицу 15 колонок
-            for (int i = 0; i < 37; i++)
+            for (var i = 0; i < 37; i++)
             {
-                notFalloutsDgView.Columns.Add("column_" + i, "");
-                falloutDgView.Columns.Add("column_" + i, "");
-                identifierDgView.Columns.Add("column_" + i, "");
+                this.notFalloutsDgView.Columns.Add("column_" + i, "");
+                this.falloutDgView.Columns.Add("column_" + i, "");
+                this.identifierDgView.Columns.Add("column_" + i, "");
             }
-            falloutDgView.Columns.Add("column_" + 37, "");
-            for (int i = 0; i < 4; i++)
+            this.falloutDgView.Columns.Add("column_" + 37, "");
+            for (var i = 0; i < 4; i++)
             {
-                notFalloutsDgView.Rows.Add();
-                notFalloutsDgView.Rows[i].Height = 14;
+                this.notFalloutsDgView.Rows.Add();
+                this.notFalloutsDgView.Rows[i].Height = 14;
             }
-            notFalloutsDgView.Rows[0].Height = 18;
-            notFalloutsDgView.Rows[1].Height = 10;
+            this.notFalloutsDgView.Rows[0].Height = 18;
+            this.notFalloutsDgView.Rows[1].Height = 10;
 
-            for (int i = 0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
-                identifierDgView.Rows.Add();
-                identifierDgView.Rows[i].Height = 10;
+                this.identifierDgView.Rows.Add();
+                this.identifierDgView.Rows[i].Height = 10;
             }
-            identifierDgView.Rows[1].Height = 22;
-            for (int i = 0; i < 12; i++)
+            this.identifierDgView.Rows[1].Height = 22;
+            for (var i = 0; i < 12; i++)
             {
-                falloutDgView.Rows.Add();
-                falloutDgView.Rows[i].Height = 13;
+                this.falloutDgView.Rows.Add();
+                this.falloutDgView.Rows[i].Height = 13;
             }
 
-            for (int i = 0; i < 2; i++)
+            for (var i = 0; i < 2; i++)
             {
-                for (int z = 0; z < 37; z++)
+                for (var z = 0; z < 37; z++)
                 {
-                    notFalloutsDgView.Rows[i + 2].Cells[z].Value = "00";
+                    this.notFalloutsDgView.Rows[i + 2].Cells[z].Value = "00";
                 }
             }
-            for (int i = 0; i < Sequence.Length; i++)
+            for (var i = 0; i < Sequence.Length; i++)
             {
-                identifierDgView.Rows[1].Cells[i].Value = Sequence[i];
+                this.identifierDgView.Rows[1].Cells[i].Value = Sequence[i];
                 if (Sequence[i] == 0)
-                    identifierDgView.Rows[1].Cells[i].Style.ForeColor = Color.LightGreen;
-                else if (RedSpins.Contains(Sequence[i]))
-                    identifierDgView.Rows[1].Cells[i].Style.ForeColor = Color.Firebrick;
-            }
-            for (int i = 0; i < 11; i++)
-            {
-                for (int z = 0; z < 37; z++)
                 {
-                    falloutDgView.Rows[i].Cells[z].Value = "00";
+                    this.identifierDgView.Rows[1].Cells[i].Style.ForeColor = Color.LightGreen;
                 }
-                falloutDgView.Rows[i].Cells[37].Value = FalloutIntervals[i];
+                else if (RedSpins.Contains(Sequence[i]))
+                {
+                    this.identifierDgView.Rows[1].Cells[i].Style.ForeColor = Color.Firebrick;
+                }
             }
-            falloutDgView.Rows[11].Cells[37].Style.BackColor = Color.Gray;
+            for (var i = 0; i < 11; i++)
+            {
+                for (var z = 0; z < 37; z++)
+                {
+                    this.falloutDgView.Rows[i].Cells[z].Value = "00";
+                }
+                this.falloutDgView.Rows[i].Cells[37].Value = FalloutIntervals[i];
+            }
+            this.falloutDgView.Rows[11].Cells[37].Style.BackColor = Color.Gray;
         }
 
         private void CancelSpinBtn_Click(object sender, EventArgs e)
         {
-            if (spins.Count == 0)
+            if (this.spins.Count == 0)
+            {
                 return;
-            spins.RemoveLast();
-            lastOperation = 2;
-            Calculate();
+            }
+
+            this.spins.RemoveLast();
+            this.lastOperation = 2;
+            this.Calculate();
         }
 
         private void Form1_Shown(object sender, EventArgs e)
         {
-            Random r = new Random();
-            for (int i = 0; i < 1000; i++)
+        }
+
+        private void SaveSpinsBtn_Click(object sender, EventArgs e)
+        {
+            var r = new Random();
+            for (var i = 0; i < 10000; i++)
             {
-                int rand = r.Next(0, 36);
+                var rand = r.Next(0, 36);
                 var btn = this.Controls.Cast<Control>().First(t => t.Name == "button" + (rand + 1)) as Button;
                 btn.PerformClick();
             }
