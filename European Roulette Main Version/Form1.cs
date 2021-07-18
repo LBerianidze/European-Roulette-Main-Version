@@ -94,6 +94,67 @@ namespace European_Roulette_Main_Version
             {
                 dataGridView1.Rows.Clear();
             }
+            var sectorsNotFallout = new Dictionary<int, List<double>>();
+            for (int i = 0; i < Sequence.Length; i++)
+            {
+                int currentSector = Sequence[i];
+                int lastIndex = spins.Count;
+                sectorsNotFallout.Add(currentSector, new List<double>());
+                for (int z = spins.Count - 1; z >= 0; z--)
+                {
+                    if (spins[z] == currentSector)
+                    {
+                        sectorsNotFallout[currentSector].Add(lastIndex - z - 1);
+                        lastIndex = z;
+                    }
+                }
+                //sectorsNotFallout[currentSector].Reverse();
+            }
+            for (int i = 0; i < sectorsNotFallout.Count; i++)
+            {
+                var number = sectorsNotFallout.ElementAt(i).Key;
+                var nonFallouts = sectorsNotFallout[number];
+                if (nonFallouts.Count != 0)
+                    notFalloutsDgView.Rows[2].Cells[i].Value = nonFallouts.First();
+                else
+                {
+                    notFalloutsDgView.Rows[2].Cells[i].Value = spins.Count;
+                }
+                for (int z = 1; z < nonFallouts.Count; z++)
+                {
+                    nonFallouts[z] += nonFallouts[z - 1];
+                }
+                for (int z = 1; z < nonFallouts.Count; z++)
+                {
+                    nonFallouts[z] /= z + 1.0;
+                }
+                var total = nonFallouts.Sum() / nonFallouts.Count;
+                if (double.IsNaN(total))
+                    total = 0;
+                notFalloutsDgView.Rows[3].Cells[i].Value = (int)Math.Round(total);
+            }
+            for(int z = 0;z<FalloutIntervals.Length;z++)
+            {
+                Dictionary<int, int> falloutsSector = new Dictionary<int, int>();
+                for (int i = 0; i < Sequence.Length; i++)
+                {
+                    int currentSector = Sequence[i];
+                    falloutsSector.Add(currentSector, 0);
+                }
+                int count = FalloutIntervals[z] == 0 ? spins.Count : FalloutIntervals[z];
+                CalculateFallouts(falloutsSector, count);
+                for (int i = 0; i < Sequence.Length; i++)
+                {
+                    falloutDgView.Rows[z].Cells[i].Value = falloutsSector.ElementAt(i).Value;
+                }
+            }
+        }
+        void CalculateFallouts(Dictionary<int, int> numbers, int count)
+        {
+            for (int i = 0; i < count && i < spins.Count; i++)
+            {
+                numbers[spins[spins.Count - (i + 1)]]++;
+            }
         }
         /// <summary>
         /// Инициализация контролов при старте программы
@@ -142,19 +203,19 @@ namespace European_Roulette_Main_Version
                 falloutDgView.Rows[i].Height = 13;
             }
 
-            for(int i = 0;i<2;i++)
+            for (int i = 0; i < 2; i++)
             {
                 for (int z = 0; z < 37; z++)
                 {
-                    notFalloutsDgView.Rows[i+2].Cells[z].Value = "00";
+                    notFalloutsDgView.Rows[i + 2].Cells[z].Value = "00";
                 }
             }
-            for(int i = 0;i<Sequence.Length;i++)
+            for (int i = 0; i < Sequence.Length; i++)
             {
                 identifierDgView.Rows[1].Cells[i].Value = Sequence[i];
-                if(Sequence[i] == 0)
+                if (Sequence[i] == 0)
                     identifierDgView.Rows[1].Cells[i].Style.ForeColor = Color.LightGreen;
-                else if(RedSpins.Contains(Sequence[i]))
+                else if (RedSpins.Contains(Sequence[i]))
                     identifierDgView.Rows[1].Cells[i].Style.ForeColor = Color.Firebrick;
             }
             for (int i = 0; i < 11; i++)
@@ -175,6 +236,17 @@ namespace European_Roulette_Main_Version
             spins.RemoveLast();
             lastOperation = 2;
             Calculate();
+        }
+
+        private void Form1_Shown(object sender, EventArgs e)
+        {
+            Random r = new Random();
+            for (int i = 0; i < 1000; i++)
+            {
+                int rand = r.Next(0, 36);
+                var btn = this.Controls.Cast<Control>().First(t => t.Name == "button" + (rand + 1)) as Button;
+                btn.PerformClick();
+            }
         }
     }
 }
