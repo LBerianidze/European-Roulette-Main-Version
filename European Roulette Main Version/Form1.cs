@@ -3,6 +3,7 @@ using European_Roulette_Main_Version.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -32,6 +33,7 @@ namespace European_Roulette_Main_Version
 
             textBox2.Text = sttimer;
         }
+        Dictionary<int, Dictionary<int, int>> lengths = new Dictionary<int, Dictionary<int, int>>();
         CircularLinkedList<int> linkedList;
         private static readonly int[] RedSpins = { 1, 3, 5, 9, 12, 7, 14, 18, 16, 21, 19, 23, 27, 25, 30, 32, 36, 34 };
         private static readonly int[] FalloutIntervals = { 11, 14, 19, 28, 37, 55, 111, 295, 0 };
@@ -43,6 +45,9 @@ namespace European_Roulette_Main_Version
         /// </summary>
         private byte lastOperation = 0;
         private static readonly int[] Sequence = { 22, 18, 29, 7, 28, 12, 35, 3, 26, 0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9 };
+        bool blocked = false;
+
+        #region Methods
         private void Button35_Click(object sender, EventArgs e)
         {
             lastSpin = Convert.ToInt32((sender as Control).Text);
@@ -54,9 +59,10 @@ namespace European_Roulette_Main_Version
         }
         private void ResetDataGridViewCellStyle()
         {
+            if (blocked)
+                return;
             lastThirteenSpinsDataGridView.Rows[0].Cells.Cast<DataGridViewCell>().ToList().ForEach(t => { t.Style.ForeColor = Color.Black; t.Value = ""; });
         }
-        Random r = new Random();
         private void Calculate()
         {
             ResetDataGridViewCellStyle(); // Сбрасываем цвет ячеек в таблице последних 13 спинов
@@ -87,18 +93,6 @@ namespace European_Roulette_Main_Version
                     }
 
                     int spin = spins[spins.Count - 14];
-                    //int tableSpinsCount = spins.Count - 13;
-                    //int lastSpinRowIndex = (int)Math.Ceiling(tableSpinsCount / 15.0) - 1;
-                    //int lastSpinCellIndex = tableSpinsCount - (lastSpinRowIndex * 15) - 1;
-                    //dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Value = spin;
-                    //if (spin == 0)
-                    //{
-                    //    dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Style.ForeColor = Color.LightGreen;
-                    //}
-                    //else if (RedSpins.Contains(spin))
-                    //{
-                    //    dataGridView1.Rows[lastSpinRowIndex].Cells[lastSpinCellIndex].Style.ForeColor = Color.Firebrick;
-                    //}
                     int dgRows = dataGridView1.Rows.Count - 1;
                     for (int i = dgRows; i >= 0; i--)
                     {
@@ -182,14 +176,6 @@ namespace European_Roulette_Main_Version
             {
                 int number = sectorsNotFallout.ElementAt(i).Key;
                 List<double> nonFallouts = sectorsNotFallout[number];
-                if (nonFallouts.Count != 0)
-                {
-                    notFalloutsDgView.Rows[2].Cells[i].Value = nonFallouts.First();
-                }
-                else
-                {
-                    notFalloutsDgView.Rows[2].Cells[i].Value = spins.Count;
-                }
                 for (int z = 1; z < nonFallouts.Count; z++)
                 {
                     nonFallouts[z] += nonFallouts[z - 1];
@@ -205,11 +191,22 @@ namespace European_Roulette_Main_Version
                 }
                 int rounded = (int)Math.Round(total);
                 sum += rounded;
-                notFalloutsDgView.Rows[3].Cells[i].Value = rounded;
+                if (!blocked)
+                {
+                    if (nonFallouts.Count != 0)
+                    {
+                        notFalloutsDgView.Rows[2].Cells[i].Value = nonFallouts.First();
+                    }
+                    else
+                    {
+                        notFalloutsDgView.Rows[2].Cells[i].Value = spins.Count;
+                    }
+                    notFalloutsDgView.Rows[3].Cells[i].Value = rounded;
+                }
             }
             Dictionary<int, int> lastFalloutsSector = null;
-            double norma40 = 0.4 * (spins.Count / (double)37); ;
-            double norma20 = 0.2 * (spins.Count / (double)37);
+            double norma40 = 1.4 * (spins.Count / (double)37); ;
+            double norma20 = 1.2 * (spins.Count / (double)37);
             for (int z = 0; z < FalloutIntervals.Length; z++)
             {
                 Dictionary<int, int> falloutsSector = new Dictionary<int, int>();
@@ -232,41 +229,44 @@ namespace European_Roulette_Main_Version
                     CalculateFallouts(falloutsSector, count, FalloutIntervals[z - 1]);
                 }
                 lastFalloutsSector = falloutsSector;
-                var schema = schemas.FirstOrDefault(t => t.Count == FalloutIntervals[z]);
-                for (int i = 0; i < Sequence.Length; i++)
+                if (!blocked)
                 {
-                    falloutDgView.Rows[z].Cells[i].Value = falloutsSector.ElementAt(i).Value;
-                    if (schema != null)
+                    var schema = schemas.FirstOrDefault(t => t.Count == FalloutIntervals[z]);
+                    for (int i = 0; i < Sequence.Length; i++)
                     {
-                        if (schema.Count == 0)
+                        falloutDgView.Rows[z].Cells[i].Value = falloutsSector.ElementAt(i).Value;
+                        if (schema != null)
                         {
-                            if (falloutsSector.ElementAt(i).Value >= norma40)
+                            if (schema.Count == 0)
                             {
-                                falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Green;
-                            }
-                            else if (falloutsSector.ElementAt(i).Value >= norma40)
-                                falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Black;
-                            else
-                                falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Red;
+                                if (falloutsSector.ElementAt(i).Value >= norma40)
+                                {
+                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Green;
+                                }
+                                else if (falloutsSector.ElementAt(i).Value >= norma40)
+                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Black;
+                                else
+                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Red;
 
-                        }
-                        else
-                        {
-                            if (falloutsSector.ElementAt(i).Value >= schema.Green)
-                                falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Green;
-                            else if (falloutsSector.ElementAt(i).Value >= schema.Yellow)
-                            {
-                                falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Black;
                             }
                             else
-                                falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Red;
+                            {
+                                if (falloutsSector.ElementAt(i).Value >= schema.Green)
+                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Green;
+                                else if (falloutsSector.ElementAt(i).Value >= schema.Yellow)
+                                {
+                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Black;
+                                }
+                                else
+                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Red;
+                            }
                         }
                     }
                 }
             }
 
             var nb = GetNeighbours(spins.Last());
-            int pos = 0, pos1 = 0;
+            int pos = 0, pos1 = 0, pos2 = 0;
             for (int i = spins.Count - 1; i > 0; i--)
             {
                 pos++;
@@ -275,18 +275,44 @@ namespace European_Roulette_Main_Version
                     break;
                 }
             }
-            for (int i = spins.Count - 1; i > 0; i--)
+            for (int i = spins.Count - 1; i > 1; i--)
             {
                 pos1++;
-                if (nb.Contains(spins[i]) && i != 0 && nb.Contains(spins[i - 1]))
+                if (nb.Contains(spins[i]) && nb.Contains(spins[i - 1]))
                 {
                     break;
                 }
             }
+            for (int i = spins.Count - 1; i > 1; i--)
+            {
+                pos2++;
+                if (spins[i] == spins[i - 1])
+                {
+                    break;
+                }
+            }
+            double degree1 = 0, degree2 = 0;
+            if (spins.Count > 1)
+            {
+                int prevSpin = spins[spins.Count - 2];
+                int last = spins.Last();
+                degree1 = lengths[last][prevSpin];
+                degree2 = lengths[prevSpin][last];
 
+            }
             if (lastOperation == 1)
             {
-                dataGridView2.Rows.Add(spins.Count, spins.Last(), sum, Calculate37(), pos == spins.Count ? "∞" : pos.ToString(), pos1 == spins.Count ? "∞" : pos1.ToString());
+                dataGridView2.Rows.Add
+                    (
+                    spins.Count,
+                    spins.Last(),
+                    sum,
+                    Calculate37(),
+                    pos == spins.Count ? "∞" : pos.ToString(),
+                    pos1 == spins.Count ? "∞" : pos1.ToString(),
+                    pos2 == spins.Count ? "∞" : pos2.ToString(),
+                    degree1 + " " + degree2
+                    );
             }
             else
             {
@@ -416,8 +442,22 @@ namespace European_Roulette_Main_Version
             schemas.Add(new ColorSchema(111, 5, 2, 0));
             schemas.Add(new ColorSchema(296, 12, 6, 0));
             schemas.Add(new ColorSchema(0, -1, -1, -1));
-        }
 
+
+            for (int i = 0; i < Sequence.Length; i++)
+            {
+                int spin = Sequence[i];
+                lengths.Add(spin, new Dictionary<int, int>());
+                for (int z = 0; z < Sequence.Length; z++)
+                {
+                    int spin2 = Sequence[z];
+                    if (i > z)
+                        lengths[spin].Add(spin2, Convert.ToInt32(Math.Round((i - z) * 9.73 / 10) * 10));
+                    else
+                        lengths[spin].Add(spin2, Convert.ToInt32(Math.Round((i + (37 - z)) * 9.73 / 10) * 10));
+                }
+            }
+        }
         private void CancelSpinBtn_Click(object sender, EventArgs e)
         {
             if (spins.Count == 0)
@@ -430,16 +470,21 @@ namespace European_Roulette_Main_Version
             Calculate();
             Controls.OfType<UserControl1>().ToList().ForEach(t => t.MoveBack());
         }
-
         private void Form1_Shown(object sender, EventArgs e)
         {
         }
-
         private void SaveSpinsBtn_Click(object sender, EventArgs e)
         {
-
+            SaveFileDialog sfd = new SaveFileDialog()
+            {
+                FileName = "Text File",
+                Filter = "Text File|*.txt"
+            };
+            if (sfd.ShowDialog() == DialogResult.OK)
+            {
+                File.WriteAllText(sfd.FileName, string.Join(", ", spins));
+            }
         }
-        bool blocked = false;
         private void loadSpinsBtn_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog()
@@ -449,25 +494,40 @@ namespace European_Roulette_Main_Version
             };
             if (ofd.ShowDialog() == DialogResult.OK)
             {
+                this.SuspendLayout();
+                Stopwatch st = new Stopwatch();
+                st.Start();
                 blocked = true;
                 dataGridView1.ScrollBars = ScrollBars.None;
                 dataGridView1.Rows.Clear();
+                dataGridView2.Rows.Clear();
                 List<int> sps = File.ReadAllText(ofd.FileName).Replace(" ", "").Split(',').Select(t => Convert.ToInt32(t)).ToList();
+                this.Controls.Remove(dataGridView1);
+
                 for (int i = 0; i < sps.Count; i++)
                 {
-                    //spins.Add(sps[i]);
                     if (i == sps.Count - 1)
                         blocked = false;
                     Button btn = Controls.Cast<Control>().First(t => t.Name == "button" + (sps[i] + 1)) as Button;
                     btn.PerformClick();
+                    this.Text = "Европейская Рулетка - Основная версия v.1.0 - " + (i / (float)sps.Count) * 100;
                 }
+                this.Controls.Add(dataGridView1);
+                st.Stop();
+                this.ResumeLayout();
+                MessageBox.Show(st.Elapsed.TotalSeconds.ToString());
                 dataGridView1.ScrollBars = ScrollBars.Vertical;
 
             }
         }
-
+        protected override void WndProc(ref Message m)
+        {
+            base.WndProc(ref m);
+        }
         private void dataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
+            if (blocked)
+                return;
             int spin = Convert.ToInt32(dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value);
             if (spin == 0)
             {
@@ -483,5 +543,6 @@ namespace European_Roulette_Main_Version
 
             }
         }
+        #endregion
     }
 }
