@@ -17,6 +17,8 @@ namespace European_Roulette_Main_Version
         public Form1()
         {
             InitializeComponent();
+            dt = new DataTable();
+            falloutDgView.DataSource = dt;
             timer = new Timer()
             {
                 Interval = 1000
@@ -24,7 +26,7 @@ namespace European_Roulette_Main_Version
             timer.Tick += Timer_Tick;
             timer.Start();
         }
-
+        DataTable dt;
         private int ticksCount = 0;
         private void Timer_Tick(object sender, EventArgs e)
         {
@@ -36,7 +38,7 @@ namespace European_Roulette_Main_Version
         Dictionary<int, Dictionary<int, int>> lengths = new Dictionary<int, Dictionary<int, int>>();
         CircularLinkedList<int> linkedList;
         private static readonly int[] RedSpins = { 1, 3, 5, 9, 12, 7, 14, 18, 16, 21, 19, 23, 27, 25, 30, 32, 36, 34 };
-        private static readonly int[] FalloutIntervals = { 11, 14, 19, 28, 37, 55, 111, 295, 0 };
+        private static readonly int[] FalloutIntervals = { 11, 14, 19, 28, 37, 55, 111, 296, 0 };
         private readonly List<int> spins = new List<int>();
         private int lastSpin = -1;
         List<ColorSchema> schemas = new List<ColorSchema>();
@@ -190,23 +192,37 @@ namespace European_Roulette_Main_Version
                     total = 0;
                 }
                 int rounded = (int)Math.Round(total);
-                sum += rounded;
+                //sum += rounded;
                 if (!blocked)
                 {
                     if (nonFallouts.Count != 0)
                     {
-                        notFalloutsDgView.Rows[2].Cells[i].Value = nonFallouts.First();
+                        notFalloutsDgView.Rows[3].Cells[i].Value = nonFallouts.First();
+                        sum += (int)nonFallouts.First();
                     }
                     else
                     {
-                        notFalloutsDgView.Rows[2].Cells[i].Value = spins.Count;
+                        notFalloutsDgView.Rows[3].Cells[i].Value = spins.Count;
+                        sum += spins.Count;
                     }
-                    notFalloutsDgView.Rows[3].Cells[i].Value = rounded;
+                    if (Convert.ToInt32(notFalloutsDgView.Rows[2].Cells[i].Value) != rounded)
+                        notFalloutsDgView.Rows[2].Cells[i].Value = rounded;
+                }
+                else
+                {
+                    if (nonFallouts.Count != 0)
+                    {
+                        sum += (int)nonFallouts.First();
+                    }
+                    else
+                    {
+                        sum += spins.Count;
+                    }
                 }
             }
             Dictionary<int, int> lastFalloutsSector = null;
-            double norma40 = 1.4 * (spins.Count / (double)37); ;
-            double norma20 = 1.2 * (spins.Count / (double)37);
+            double norma40 = 1.2 * (spins.Count / (double)37); ;
+            double norma20 = 0.8 * (spins.Count / (double)37);
             for (int z = 0; z < FalloutIntervals.Length; z++)
             {
                 Dictionary<int, int> falloutsSector = new Dictionary<int, int>();
@@ -229,68 +245,63 @@ namespace European_Roulette_Main_Version
                     CalculateFallouts(falloutsSector, count, FalloutIntervals[z - 1]);
                 }
                 lastFalloutsSector = falloutsSector;
+                dt.BeginLoadData();
                 if (!blocked)
                 {
                     var schema = schemas.FirstOrDefault(t => t.Count == FalloutIntervals[z]);
                     for (int i = 0; i < Sequence.Length; i++)
                     {
-                        falloutDgView.Rows[z].Cells[i].Value = falloutsSector.ElementAt(i).Value;
-                        if (schema != null)
+                        dt.Rows[z].SetField(i, falloutsSector.ElementAt(i).Value);
+                        if (FalloutIntervals[z] == 0)
                         {
-                            if (schema.Count == 0)
-                            {
-                                if (falloutsSector.ElementAt(i).Value >= norma40)
-                                {
-                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Green;
-                                }
-                                else if (falloutsSector.ElementAt(i).Value >= norma40)
-                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Black;
-                                else
-                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Red;
-
-                            }
+                            if (falloutsSector.ElementAt(i).Value >= norma40)
+                                falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightGreen;
+                            else if (falloutsSector.ElementAt(i).Value <= norma20)
+                                falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightPink;
                             else
+                                falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.Yellow;
+
+                        }
+                        else
+                        {
+                            if (FalloutIntervals[z] >= 11 && FalloutIntervals[z] <= 28)
                             {
-                                if (falloutsSector.ElementAt(i).Value >= schema.Green)
-                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Green;
-                                else if (falloutsSector.ElementAt(i).Value >= schema.Yellow)
-                                {
-                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Black;
-                                }
-                                else
-                                    falloutDgView.Rows[z].Cells[i].Style.ForeColor = Color.Red;
+                                if (falloutsSector.ElementAt(i).Value >= 2) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightGreen;
+                                else if (falloutsSector.ElementAt(i).Value >= 1) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.Yellow;
+                                else falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightPink;
+                            }
+                            else if (FalloutIntervals[z] == 37)
+                            {
+                                if (falloutsSector.ElementAt(i).Value >= 2) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightGreen;
+                                else if (falloutsSector.ElementAt(i).Value == 1) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.Yellow;
+                                else falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightPink;
+                            }
+                            else if (FalloutIntervals[z] == 55)
+                            {
+                                if (falloutsSector.ElementAt(i).Value >= 3) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightGreen;
+                                else if (falloutsSector.ElementAt(i).Value >= 1) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.Yellow;
+                                else falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightPink;
+                            }
+                            else if (FalloutIntervals[z] == 111)
+                            {
+                                if (falloutsSector.ElementAt(i).Value >= 5) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightGreen;
+                                else if (falloutsSector.ElementAt(i).Value >= 2) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.Yellow;
+                                else falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightPink;
+                            }
+                            else if (FalloutIntervals[z] == 296)
+                            {
+                                if (falloutsSector.ElementAt(i).Value >= 10) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightGreen;
+                                else if (falloutsSector.ElementAt(i).Value >= 6) falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.Yellow;
+                                else falloutDgView.Rows[z].Cells[i].Style.BackColor = Color.LightPink;
                             }
                         }
                     }
                 }
+                dt.EndLoadData();
             }
 
             var nb = GetNeighbours(spins.Last());
-            int pos = 0, pos1 = 0, pos2 = 0;
-            for (int i = spins.Count - 1; i > 0; i--)
-            {
-                pos++;
-                if (nb.Contains(spins[i]))
-                {
-                    break;
-                }
-            }
-            for (int i = spins.Count - 1; i > 1; i--)
-            {
-                pos1++;
-                if (nb.Contains(spins[i]) && nb.Contains(spins[i - 1]))
-                {
-                    break;
-                }
-            }
-            for (int i = spins.Count - 1; i > 1; i--)
-            {
-                pos2++;
-                if (spins[i] == spins[i - 1])
-                {
-                    break;
-                }
-            }
+
             double degree1 = 0, degree2 = 0;
             if (spins.Count > 1)
             {
@@ -302,8 +313,52 @@ namespace European_Roulette_Main_Version
             }
             if (lastOperation == 1)
             {
-                dataGridView2.Rows.Add
-                    (
+                int pos = 0, pos1 = 0, pos2 = 0;
+                for (int i = spins.Count - 1; i > 0; i--)
+                {
+                    pos++;
+                    if (nb.Contains(spins[i]))
+                    {
+                        break;
+                    }
+                }
+                for (int i = spins.Count - 1; i > 1; i--)
+                {
+                    pos1++;
+                    if (nb.Contains(spins[i]) && nb.Contains(spins[i - 1]))
+                    {
+                        break;
+                    }
+                }
+                for (int i = spins.Count - 1; i > 1; i--)
+                {
+                    pos2++;
+                    if (spins[i] == spins[i - 1])
+                    {
+                        break;
+                    }
+                }
+
+                int sectorsCount = 0;
+                var s_1 = Sequence.Take(6);
+                var s_2 = Sequence.Skip(6).Take(5);
+                var s_3 = Sequence.Skip(11).Take(5);
+                var s_4 = Sequence.Skip(16).Take(6);
+                var s_5 = Sequence.Skip(22).Take(5);
+                var s_6 = Sequence.Skip(27).Take(5);
+                var s_7 = Sequence.Skip(32).Take(5);
+                var seven = spins.Skip(spins.Count - 7).ToList();
+                if (s_1.Any(t => seven.Contains(t))) sectorsCount++;
+                if (s_2.Any(t => seven.Contains(t))) sectorsCount++;
+                if (s_3.Any(t => seven.Contains(t))) sectorsCount++;
+                if (s_4.Any(t => seven.Contains(t))) sectorsCount++;
+                if (s_5.Any(t => seven.Contains(t))) sectorsCount++;
+                if (s_6.Any(t => seven.Contains(t))) sectorsCount++;
+                if (s_7.Any(t => seven.Contains(t))) sectorsCount++;
+
+
+                dataGridView2.Rows.Insert(0,
+
                     spins.Count,
                     spins.Last(),
                     sum,
@@ -311,14 +366,17 @@ namespace European_Roulette_Main_Version
                     pos == spins.Count ? "∞" : pos.ToString(),
                     pos1 == spins.Count ? "∞" : pos1.ToString(),
                     pos2 == spins.Count ? "∞" : pos2.ToString(),
-                    degree1 + " " + degree2
+                    degree1,
+                    degree2,
+                    sectorsCount
                     );
             }
             else
             {
-                dataGridView2.Rows.Remove(dataGridView1.Rows[dataGridView1.Rows.Count - 1]);
+                if (dataGridView2.RowCount > 0)
+                    dataGridView2.Rows.Remove(dataGridView2.Rows[0]);
             }
-            dataGridView2.FirstDisplayedScrollingRowIndex = dataGridView2.Rows.Count - 1;
+            //dataGridView2.FirstDisplayedScrollingRowIndex = dataGridView2.Rows.Count - 1;
             textBox1.Text = spins.Count.ToString();
 
         }
@@ -378,7 +436,8 @@ namespace European_Roulette_Main_Version
             for (int i = 0; i < 37; i++)
             {
                 notFalloutsDgView.Columns.Add("column_" + i, "");
-                falloutDgView.Columns.Add("column_" + i, "");
+                //falloutDgView.Columns.Add("column_" + i, "");
+                dt.Columns.Add("column_" + i, typeof(int));
                 identifierDgView.Columns.Add("column_" + i, "");
             }
             falloutDgView.Columns.Add("column_" + 37, "");
@@ -398,8 +457,9 @@ namespace European_Roulette_Main_Version
             identifierDgView.Rows[1].Height = 22;
             for (int i = 0; i < 12; i++)
             {
-                falloutDgView.Rows.Add();
-                falloutDgView.Rows[i].Height = 13;
+                dt.Rows.Add();
+                //falloutDgView.Rows.Add();
+                //falloutDgView.Rows[i].Height = 13;
             }
 
             for (int i = 0; i < 2; i++)
@@ -425,7 +485,7 @@ namespace European_Roulette_Main_Version
             {
                 for (int z = 0; z < 37; z++)
                 {
-                    falloutDgView.Rows[i].Cells[z].Value = "00";
+                    dt.Rows[i].SetField(z, 00);
                 }
                 falloutDgView.Rows[i].Cells[37].Value = FalloutIntervals[i];
             }
@@ -502,6 +562,7 @@ namespace European_Roulette_Main_Version
                 dataGridView1.Rows.Clear();
                 dataGridView2.Rows.Clear();
                 List<int> sps = File.ReadAllText(ofd.FileName).Replace(" ", "").Split(',').Select(t => Convert.ToInt32(t)).ToList();
+                sps.Reverse();
                 this.Controls.Remove(dataGridView1);
 
                 for (int i = 0; i < sps.Count; i++)
@@ -519,10 +580,6 @@ namespace European_Roulette_Main_Version
                 dataGridView1.ScrollBars = ScrollBars.Vertical;
 
             }
-        }
-        protected override void WndProc(ref Message m)
-        {
-            base.WndProc(ref m);
         }
         private void dataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
@@ -544,5 +601,34 @@ namespace European_Roulette_Main_Version
             }
         }
         #endregion
+
+        private void NotFalloutsDgView_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            int val = Convert.ToInt32(notFalloutsDgView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value);
+
+            if (e.RowIndex == 2)
+            {
+                if (val >= 44)
+                    notFalloutsDgView.Rows[e.RowIndex].Cells[e.ColumnIndex].Style.BackColor = Color.LightPink;
+                else if (val >= 30)
+                    notFalloutsDgView.Rows[e.RowIndex].Cells[e.ColumnIndex].Style.BackColor = Color.Yellow;
+                else
+                    notFalloutsDgView.Rows[e.RowIndex].Cells[e.ColumnIndex].Style.BackColor = Color.LightGreen;
+
+
+            }
+            else if (e.RowIndex == 3)
+            {
+                if (val >= 60)
+                    notFalloutsDgView.Rows[e.RowIndex].Cells[e.ColumnIndex].Style.BackColor = Color.LightPink;
+                else if (val >= 38)
+                    notFalloutsDgView.Rows[e.RowIndex].Cells[e.ColumnIndex].Style.BackColor = Color.Yellow;
+                else
+                    notFalloutsDgView.Rows[e.RowIndex].Cells[e.ColumnIndex].Style.BackColor = Color.LightGreen;
+
+
+
+            }
+        }
     }
 }
